@@ -11,13 +11,13 @@ import uvicorn
 
 app = FastAPI()
 
-model = YOLO('best.torchscript', task='detect')
+model = YOLO('./model_weights/best.torchscript', task='detect')
 reader = easyocr.Reader(['en'])
 
 @app.post("/detect-license-plate/")
 async def detect_license_plate(file: UploadFile = File(...)):
     contents = await file.read()
-    image = Image.open(BytesIO(contents))
+    image = Image.open(BytesIO(contents)).convert('RGB')  
     
     results = model(np.array(image))
     plates = []
@@ -34,7 +34,7 @@ async def detect_license_plate(file: UploadFile = File(...)):
         detections = reader.readtext(plate_threshold)
         if detections:
             text, confidence = detections[0][1].upper().replace(' ', ''), detections[0][2]
-            plates.append({'plate': text, 'confidence': confidence})
+            plates.append({'plate_number': text, 'confidence_score': confidence, 'bounding_box': {"xmin": xmin, "ymin": ymin, "xmax": xmax, "ymax": ymax}})
 
     return JSONResponse(content={"results": plates})
 
