@@ -1,4 +1,4 @@
-# LICENSE PLATE DETECTION
+# LICENSE PLATE DETECTION 🚘
 
 
 Created a fastapi API endpoint to detect license plate numbers. To try it out simply run 
@@ -14,3 +14,6 @@ Created a fastapi API endpoint to detect license plate numbers. To try it out si
 Then you can try doing this: 
 - as the root user run the below command (`su root` to swap into root)
 - `apt-get update && apt-get install libgl1`
+
+
+*Credits to Jun Ming for providing the model training code*
