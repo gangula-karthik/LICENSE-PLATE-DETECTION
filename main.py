@@ -2,17 +2,17 @@ from fastapi import FastAPI, File, UploadFile
 from fastapi.responses import JSONResponse
 import cv2
 from ultralytics import YOLO
-import easyocr
 from io import BytesIO
 from PIL import Image
 import numpy as np
 import uvicorn
+from paddleocr import PaddleOCR
 
 
 app = FastAPI()
 
 model = YOLO('./model_weights/best.torchscript', task='detect')
-reader = easyocr.Reader(['en'])
+reader = PaddleOCR(lang='en') # need to run only once to load model into memory
 
 @app.post("/detect-license-plate/")
 async def detect_license_plate(file: UploadFile = File(...)):
@@ -31,10 +31,14 @@ async def detect_license_plate(file: UploadFile = File(...)):
         _, plate_threshold = cv2.threshold(plate_image, 64, 255, cv2.THRESH_BINARY_INV)
         
         # read the license plate
-        detections = reader.readtext(plate_threshold)
-        if detections:
-            text, confidence = detections[0][1].upper().replace(' ', ''), detections[0][2]
-            plates.append({'plate_number': text, 'confidence_score': confidence, 'bounding_box': {"xmin": xmin, "ymin": ymin, "xmax": xmax, "ymax": ymax}})
+        result = reader.ocr(plate_threshold, det=False, cls=False)
+        # Concatenate the plate strings
+        plate_numbers = " ".join(plate for res in result for plate, _ in res)
+        print(plates)
+        # Collect and average the scores
+        scores = [score for res in result for _, score in res]
+        average_score = sum(scores) / len(scores) if scores else 0
+        plates.append({'plate_number': plate_numbers, 'confidence_score': average_score, 'bounding_box': {"xmin": xmin, "ymin": ymin, "xmax": xmax, "ymax": ymax}})
 
     return JSONResponse(content={"results": plates})
 
